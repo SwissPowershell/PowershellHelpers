@@ -1,7 +1,8 @@
 
 # Default Vars
 # [String] $LORepository = 'LO.WKS.Packaging.PowershellModules'
-[Boolean] $IsAdmin = ([System.Security.Principal.WindowsPrincipal]($([System.Security.Principal.WindowsIdentity]::GetCurrent()))).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+Function Get-IsElevated {([System.Security.Principal.WindowsPrincipal]($([System.Security.Principal.WindowsIdentity]::GetCurrent()))).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)}
+[Boolean] $IsAdmin = Get-IsElevated
 
 # rewrite the default color for host Warning and verbose as in some host they are less visible
 $Host.PrivateData.WarningForegroundColor = [System.ConsoleColor]::Yellow
@@ -24,7 +25,7 @@ Function Show-WelcomePage {
     $PSVersionTitle = "PS Version"
     $HostNameTitle = "Host Name"
     $HostVersionTitle = "Host Version"
-    $RepositoryTitle = "`$LoRepository"
+    # $RepositoryTitle = "`$LoRepository"
     $Names = @($RunAsUsertitle,$PSVersionTitle,$HostNameTitle,$HostVersionTitle)
     #SubTitles (Values)
     if ($IsAdmin) {
@@ -104,6 +105,7 @@ Function Show-WelcomePage {
 }
 # Change the prompt for something more sexy
 Function Global:Prompt {
+    # You can input any special char you want
     [String] $MySpecialChar = [Char]9829
     $DefaultColor = 'Yellow'
     $AdminColor = 'DarkCyan'

@@ -1,3 +1,4 @@
+## test cache by running https://docs.oracle.com/javase/tutorial/deployment/webstart/examplesIndex.html it should populate the cache dir
 Function Set-JavaCacheDir {
     [CMDLetBinding(DefaultParameterSetName='Set')]
     Param(

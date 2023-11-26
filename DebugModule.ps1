@@ -10,6 +10,8 @@
     .LINK
         https://github.com/SwissPowershell/PowershellHelpers/tree/main/DebugModule.ps1
 #>
+# Change the Verbose default color (pwsh seems to set all to yellow)
+$Host.PrivateData.VerboseForegroundColor = 'Cyan'
 # Import the module based on the current directory
 # Get the module name, version and definition file
 $ModuleVersion = Split-Path -Path $PSScriptRoot -leaf;$ModuleName = Split-Path -Path $(Split-Path -Path $PSScriptRoot) -leaf;$ModuleDefinitionFile = Get-ChildItem -Path $PSScriptRoot -Filter '*.psd1'
@@ -22,7 +24,7 @@ $Module = Get-Module -Name $ModuleName -ErrorAction Ignore
 if (($Module | Select-Object -ExpandProperty Version) -ne $ModuleVersion) {Write-Warning "The module version loaded does not match the folder version: please review !";Write-Warning "The script cannot continue...";BREAK}
 # List all the exposed function from the module
 Write-Host "Module [" -ForegroundColor Yellow -NoNewline; Write-Host $ModuleName -NoNewline -ForegroundColor Magenta; Write-Host "] Version [" -ForegroundColor Yellow -NoNewline;Write-Host $ModuleVersion -NoNewline -ForegroundColor Magenta;Write-Host "] : " -NoNewline; Write-Host "Loaded !" -ForegroundColor Green
-if ($Module.ExportedCommands.count -gt 0) {Write-Host "Available Commands:" -ForegroundColor Yellow;$Module.ExportedCommands | ForEach-Object {Write-Host "`t - $($_.Keys)" -ForegroundColor Magenta};Write-Host ''}Else{Write-Host "`t !! There is no exported command in this module !!" -ForegroundColor Red}
+if ($Module.ExportedCommands.count -gt 0) {Write-Host "Available Commands:" -ForegroundColor Yellow;$Module.ExportedCommands.Keys | ForEach-Object {Write-Host "`t - $($_)" -ForegroundColor Magenta};Write-Host ''}Else{Write-Host "`t !! There is no exported command in this module !!" -ForegroundColor Red}
 Write-Host "------------------ Starting script ------------------" -ForegroundColor Yellow
 $DebugStart = Get-Date
 ############################

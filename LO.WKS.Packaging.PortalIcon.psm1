@@ -16,6 +16,73 @@ Enum IconSize {
     Value7 = 128
     Value8 = 256
 }
+Class OrganicHelper {
+    static [void] GetVertexFromPath($svgPathData){
+        $bitmap = New-Object System.Drawing.Bitmap 200, 200
+        $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+        
+        # Parse the SVG path
+        $commands = $svgPathData -split 'Z'
+        $path = New-Object System.Drawing.Drawing2D.GraphicsPath
+        
+        foreach ($command in $commands) {
+            $verts = @()
+            $codes = @()
+            $elements = $command.Trim().Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
+        
+            $currentPoint = New-Object System.Drawing.PointF(0, 0)
+        
+            foreach ($element in $elements) {
+                $command = $element.Substring(0, 1)
+                $coords = $element.Substring(1) -split '[,]'
+                
+                switch ($command) {
+                    "m" {
+                        $currentPoint = New-Object System.Drawing.PointF([float]$coords[0], [float]$coords[1])
+                        $codes += [System.Drawing.Drawing2D.GraphicsPath]::PathTypeStart
+                        $verts += $currentPoint
+                    }
+                    "L" {
+                        $currentPoint = New-Object System.Drawing.PointF([float]$coords[0], [float]$coords[1])
+                        $codes += [System.Drawing.Drawing2D.GraphicsPath]::PathTypeLine
+                        $verts += $currentPoint
+                    }
+                    "c" {
+                        $codes += [System.Drawing.Drawing2D.GraphicsPath]::PathTypeBezier
+                        for ($i = 0; $i -lt $coords.Count; $i += 6) {
+                            $startX = $currentPoint.X
+                            $startY = $currentPoint.Y
+                            $endX = $startX + [float]$coords[$i + 4]
+                            $endY = $startY + [float]$coords[$i + 5]
+                            $currentPoint = New-Object System.Drawing.PointF($endX, $endY)
+                            $verts += New-Object System.Drawing.PointF($startX, $startY)
+                            $verts += New-Object System.Drawing.PointF(([float]$coords[$i]), ([float]$coords[$i + 1]))
+                            $verts += New-Object System.Drawing.PointF(([float]$coords[$i + 2]), ([float]$coords[$i + 3]))
+                            $verts += New-Object System.Drawing.PointF($endX, $endY)
+                        }
+                    }
+                    "h" {
+                        $codes += [System.Drawing.Drawing2D.GraphicsPath]::PathTypeLine
+                        $currentPoint = New-Object System.Drawing.PointF($currentPoint.X + [float]$coords[0], $currentPoint.Y)
+                        $verts += $currentPoint
+                    }
+                }
+            }
+        
+            $path.AddPath($verts, $codes)
+        }
+        
+        # Draw the path
+        $graphics.DrawPath([System.Drawing.Pens]::Black, $path)
+        
+        # Save the bitmap
+        $bitmap.Save("c:\temp\temp.png", [System.Drawing.Imaging.ImageFormat]::Png)
+        
+        # Cleanup
+        $graphics.Dispose()
+        $bitmap.Dispose()
+    }
+}
 Class OrganicIcon {
     [OrganicIconType] ${Type} = [OrganicIconType]::Administration
     [String] ${Text}
@@ -41,7 +108,7 @@ Class OrganicIcon {
         $this.set()
         $this.buildSVG()
     }
-    [Void] set() {
+    hidden [Void] set() {
         Switch ($this.Type) {
             'Administration' {
                 $this.ContentPath = 'M2.38,53.87c-4.41,54.05,15.11,65.21,50.33,65.22,42.07.02,73.55,1.38,73.54-62.65,0-42.16-31.61-47.56-59.65-47.53-28.05.03-61.24,8.47-64.22,44.96Z'
@@ -113,7 +180,7 @@ Class OrganicIcon {
             }
         }
     }
-    [void] buildSVG(){
+    hidden [void] buildSVG(){
         # Create a new XML document
         $this.xmlDoc = New-Object System.Xml.XmlDocument
 
@@ -170,7 +237,7 @@ Class OrganicIcon {
         $svgElement.AppendChild($textElement)
         $this.xmlDoc.AppendChild($svgElement)
     }
-    [System.Xml.XmlElement] GetTextElement(){
+    hidden [System.Xml.XmlElement] GetTextElement(){
         $textElement = $this.xmlDoc.CreateElement('text')
         $textElement.SetAttribute('class', 'text')
         $textElement.SetAttribute('transform', "translate($($this.xTranslate) $($this.yTranslate))")
@@ -180,6 +247,12 @@ Class OrganicIcon {
         $tspanElement.InnerText = $this.Text
         $textElement.AppendChild($tspanElement)
         return $textElement
+    }
+    [void] SaveSVG($Path){
+        $this.xmlDoc.Save($Path)
+    }
+    [void] SavePNG($Path){
+        $BorderVertex = [OrganicHelper]::GetVertexFromPath($this.BorderPath)
     }
 }
 
@@ -243,6 +316,7 @@ Function New-PortalIcon {
         }
         if ($Process){
             Add-Type -AssemblyName System.Drawing
+            Add-Type -AssemblyName System.Windows.Forms
         }
     }
     PROCESS {
@@ -251,12 +325,14 @@ Function New-PortalIcon {
         #endregion Function Processing DO NOT REMOVE
         if ($Process){
             $iconDefinition = [OrganicIcon]::new($Text,$IconType)
-            $pngFilePath = "$($OutPath)\$($IconType.ToString())_$($Text)_$($Name).png"
+            $pngFileName = "$($OutPath)\$($IconType.ToString())_$($Text)_$($Name).png"
             $tempFileName = [System.IO.Path]::GetTempFileName()
             $svgFileName = $tempFileName -replace '\.tmp$','.svg'
-            $iconDefinition.xmlDoc.Save($svgFileName)
-            Write-Verbose "SVG Image temporary saved to: $($svgFileName)"
-            Convert-SvgToPng -svgFilePath $svgFileName -pngFilePath $pngFilePath
+            $iconDefinition.SaveSVG($svgFileName)
+            $iconDefinition.SavePNG($pngFileName)
+            # $iconDefinition.xmlDoc.Save($svgFileName)
+            # Write-Verbose "SVG Image temporary saved to: $($svgFileName)"
+            # Convert-SvgToPng -svgFilePath $svgFileName -pngFilePath $pngFilePath
         }
     }
     END {

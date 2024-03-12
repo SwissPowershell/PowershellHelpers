@@ -1,3 +1,7 @@
+
+#https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+#https://www.w3.org/TR/SVG/paths.html#PathElement
+
 Enum OrganicIconType {
     All
     Administration

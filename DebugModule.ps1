@@ -14,28 +14,29 @@
 # Get the module name, version and definition file
 $ModuleVersion = Split-Path -Path $PSScriptRoot -leaf;$ModuleName = Split-Path -Path $(Split-Path -Path $PSScriptRoot) -leaf;$ModuleDefinitionFile = Get-ChildItem -Path $PSScriptRoot -Filter '*.psd1'
 # Remove the module (if loaded)
-if (Get-Module -Name $ModuleName -ErrorAction Ignore) {Try {Remove-Module -Name $ModuleName} Catch {Write-Warning "Unable to remove module: $($_.Exception.Message)"};Write-Warning 'The script cannot continue...';BREAK}
+if (Get-Module -Name $ModuleName -ErrorAction Ignore) {Try {Remove-Module -Name $ModuleName} Catch {Write-Warning "Unable to remove module: $($_.Exception.Message)"};Write-Warning "The script cannot continue...";BREAK}
 # Add the module using the definition file
-Try {Import-Module $ModuleDefinitionFile.FullName -ErrorAction Stop}Catch {Write-Warning "Unable to load the module: $($_.Exception.Message)";Write-Warning 'The script cannot continue...';BREAK}
+Try {Import-Module $ModuleDefinitionFile.FullName -ErrorAction Stop}Catch {Write-Warning "Unable to load the module: $($_.Exception.Message)";Write-Warning "The script cannot continue...";BREAK}
 # Control that the module added is in the same version as the detected version
 $Module = Get-Module -Name $ModuleName -ErrorAction Ignore
-if (($Module | Select-Object -ExpandProperty Version) -ne $ModuleVersion) {Write-Warning 'The module version loaded does not match the folder version: please review !';Write-Warning 'The script cannot continue...';BREAK}
+if (($Module | Select-Object -ExpandProperty Version) -ne $ModuleVersion) {Write-Warning "The module version loaded does not match the folder version: please review !";Write-Warning "The script cannot continue...";BREAK}
 # List all the exposed function from the module
-Write-Host 'Module [' -ForegroundColor Yellow -NoNewline; Write-Host $ModuleName -NoNewline -ForegroundColor Magenta; Write-Host '] Version [' -ForegroundColor Yellow -NoNewline;Write-Host $ModuleVersion -NoNewline -ForegroundColor Magenta;Write-Host "] : " -NoNewline; Write-Host "Loaded !" -ForegroundColor Green
-if ($Module.ExportedCommands.count -gt 0) {Write-Host 'Available Commands:' -ForegroundColor Yellow;$Module.ExportedCommands | Select-Object -ExpandProperty 'Keys' -ErrorAction Ignore| ForEach-Object {Write-Host "`t - $($_)" -ForegroundColor Magenta};Write-Host ''}Else{Write-Host "`t !! There is no exported command in this module !!" -ForegroundColor Red}
-Write-Host '------------------ Starting script ------------------' -ForegroundColor Yellow
+Write-Host "Module [" -ForegroundColor Yellow -NoNewline; Write-Host $ModuleName -NoNewline -ForegroundColor Magenta; Write-Host "] Version [" -ForegroundColor Yellow -NoNewline;Write-Host $ModuleVersion -NoNewline -ForegroundColor Magenta;Write-Host "] : " -NoNewline; Write-Host "Loaded !" -ForegroundColor Green
+if ($Module.ExportedCommands.count -gt 0) {Write-Host "Module's exposed commands:" -ForegroundColor Yellow;$Module.ExportedCommands | Select-Object -ExpandProperty 'Keys' -ErrorAction Ignore| ForEach-Object {Write-Host "`t - $($_)" -ForegroundColor Magenta};Write-Host ''}Else{Write-Host "`t !! There is no exported command in this module !!" -ForegroundColor Red}
+Write-Host "------------------ Starting script ------------------" -ForegroundColor Yellow
 $DebugStart = Get-Date
 ############################
 # Test your functions here #
 ############################
-Set-StrictMode -Version Latest
-$ErrorActionPreference = 'Stop'
-$VerbosePreference = 'Continue'
+# Choose the values that fit your needs
+Set-StrictMode -Version Latest # Strict mode latest force the strictest mode I encourage using this while debugging in order to make sur you correctly handle variable
+$ErrorActionPreference = 'Stop' # this will force the script to stop at any error
+$VerbosePreference = 'Continue' # show the verbose text
 
 ##################################
 # End of the tests show mettrics #
 ##################################
-Write-Host '------------------- Ending script -------------------' -ForegroundColor Yellow
+Write-Host "------------------- Ending script -------------------" -ForegroundColor Yellow
 $TimeSpentInDebugScript = New-TimeSpan -Start $DebugStart -Verbose:$False -ErrorAction SilentlyContinue;$TimeUnits = [ORDERED] @{TotalDays = "$($TimeSpentInDebugScript.TotalDays) D.";TotalHours = "$($TimeSpentInDebugScript.TotalHours) h.";TotalMinutes = "$($TimeSpentInDebugScript.TotalMinutes) min.";TotalSeconds = "$($TimeSpentInDebugScript.TotalSeconds) s.";TotalMilliseconds = "$($TimeSpentInDebugScript.TotalMilliseconds) ms."}
 ForEach ($Unit in $TimeUnits.GetEnumerator()) {if ($TimeSpentInDebugScript.($Unit.Key) -gt 1) {$TimeSpentString = $Unit.Value;break}};if (-not $TimeSpentString) {$TimeSpentString = "$($TimeSpentInDebugScript.Ticks) Ticks"}
-Write-Host 'Ending : ' -ForegroundColor Yellow -NoNewLine; Write-Host $($MyInvocation.MyCommand) -ForegroundColor Magenta -NoNewLine;Write-Host ' - TimeSpent : ' -ForegroundColor Yellow -NoNewLine; Write-Host $TimeSpentString -ForegroundColor Magenta
+Write-Host "Ending : " -ForegroundColor Yellow -NoNewLine; Write-Host $($MyInvocation.MyCommand) -ForegroundColor Magenta -NoNewLine;Write-Host " - TimeSpent : " -ForegroundColor Yellow -NoNewLine; Write-Host $TimeSpentString -ForegroundColor Magenta
